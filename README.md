@@ -5,8 +5,11 @@ This tutorial is just to showcase a basic implementation of Bayesian optimizatio
 
 ![top view](figures/output_1.png)
 
-### Traditional Grid Search on left, BO with 90% exploitation & 10% exploration right
+### Now with 90% exploitation & 10% exploration
 
 ![top view](figures/output_2.png)
 
+### Now showing the model's confidence
+
+![top view](figures/output_3.png)
 
