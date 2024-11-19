@@ -1,4 +1,4 @@
-#Overview:
+Overview:
 
 1. **Gaussian Peak Function**:
    - The `gaussian_peak` function represents a 2D Gaussian distribution, centered at coordinates (0.2, 0.1). The standard deviation for both dimensions is set to 0.1, resulting in a peak centered at this point with a smooth, bell-shaped decline.
