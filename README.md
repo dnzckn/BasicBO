@@ -5,11 +5,7 @@ This tutorial is just to showcase a basic implementation of Bayesian optimizatio
 
 ![top view](figures/output_1.png)
 
-### Now with 90% exploitation & 10% exploration
+### Now with 90% exploitation & 10% exploration | scalarized inputs, standardized outputs in model fitting 
 
 ![top view](figures/output_2.png)
-
-### Now showing the model's confidence
-
-![top view](figures/output_3.png)
 
