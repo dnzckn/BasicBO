@@ -111,3 +111,10 @@ This figure shows how different configurations e.g., synchronous vs asyncrounous
 ---
 
 This notebook and codebase demonstrate how these concepts integrate seamlessly with `ax_platform`. By walking through initial random sampling, modeling steps, adaptive exploration-exploitation trade-offs, and early stopping, you can get a practical sense of how Bayesian Optimization tackles real-world, black-box optimization tasks efficiently.
+
+# For further reading check out my real life demos of BO accelerating materials discovery:
+
+- [PASCAL: the perovskite automated spin coat assembly line accelerates composition screening in triple-halide perovskite alloys](https://pubs.rsc.org/en/content/articlelanding/2024/dd/d4dd00075g)
+
+- [Bayesian optimization and prediction of the durability of triple-halide perovskite thin films under light and heat stressors](https://pubs.rsc.org/en/content/articlelanding/2024/ma/d4ma00747f)
+
