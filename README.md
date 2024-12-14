@@ -5,10 +5,6 @@ Working ipynb notebook demo of `ax_platform==0.4.3`
 
 ![top view](figures/output_1.png)
 
-### Now with 90% exploitation & 10% exploration | Normalized inputs, standardized outputs for model fitting
-
-![top view](figures/output_2.png)
-
 ### Configuring Mode
 
 ![top view](figures/config_rates.png)
