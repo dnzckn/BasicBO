@@ -7,6 +7,13 @@ The figure below shows a comparison of a traditional grid search approach on the
 
 ![top view](figures/output_1.png)
 
+### Optimized Model
+
+After BO is complete we can plot the final model. The figure below shows the optimized model mean and standard deviation
+
+![top view](figures/final_model.png)
+
+
 ### Configuring the Optimization Mode
 
 This figure shows how different configurations e.g., synchronous vs asyncrounous and batch size can impact the optimization rate:
