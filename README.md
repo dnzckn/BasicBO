@@ -21,8 +21,7 @@ This figure shows how different configurations e.g., synchronous vs asyncrounous
 
    We define our objective function \( f(x,y) \) as a 2D Gaussian centered at \((x=0.2, y=0.1)\) with a standard deviation of \(0.1\):
 
-   ![equation](https://render.githubusercontent.com/render/math?math=f(x,y)%3D%5Cexp%5Cleft(-%5Cfrac%7B(x-0.2)%5E2%2B(y-0.1)%5E2%7D%7B2%5Ccdot(0.1)%5E2%7D%5Cright))
-
+   ![top view](figures/gaussian_response.png)
 
    This function provides a smooth, unimodal landscape, ideal for demonstrating how an optimizer can efficiently converge to the peak.
 
