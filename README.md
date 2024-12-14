@@ -63,7 +63,7 @@ This figure demonstrates how different configurations, such as synchronous vs. a
    Each iteration decides between exploitation and exploration based on a defined probability (`explore_ratio`):
 
    - **Exploitation (GPEI)**: Focuses on areas likely to improve the current best point.
-   - **Exploration (qNIPV)**: Samples points in less-known regions to enhance the model and discover new promising areas.
+   - **Exploration (qNIPV)**: Samples points in less-known regions to enhance the model and discover new promising areas. Direction agnostic. 
 
    This balance ensures efficient search towards the global optimum without premature convergence.
 
@@ -76,24 +76,12 @@ This figure demonstrates how different configurations, such as synchronous vs. a
 
    These criteria make BO practical for scenarios with expensive evaluations.
 
-7. ### Normalization and Standardization
-
-   For robust model fitting:
-
-   - **Input Normalization**: Ensures all parameters lie within similar numeric ranges, enhancing model stability.
-   - **Output Standardization**: Standardizes objective values to have zero mean and unit variance, aiding the GP in accurate and stable predictions.
-
-8. ### Visualization
-
-   - **Grid Sweep Plot**: Displays the true function values across the parameter space, serving as a reference for the optimizer's performance.
-   - **Bayesian Optimization Plot**: Shows optimizer-selected points over an interpolated surface from these points, illustrating the transition from broad exploration to focused exploitation.
-
 ---
 
 ## Key Concepts Summary
 
 - **Objective Function**: A controlled 2D Gaussian peak used to understand the BO process on a known landscape.
-- **Parameter Space**: Normalized parameters x and y ranging from -1 to 1.
+- **Parameter Space**: Parameters x and y respective range for the search. Ax handles normalization and standardization in the back end.
 - **Grid Sweep**: A brute-force baseline providing exhaustive coverage, useful for visualization and reference.
 - **Bayesian Optimization Steps**: Involves sequential decision-making on point selection using a surrogate model (GP) and acquisition functions (EI, qNIPV).
 - **Exploration vs. Exploitation**: Balances global search with local optimization to ensure convergence to the global optimum.
