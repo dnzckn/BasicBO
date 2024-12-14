@@ -19,37 +19,35 @@ This figure shows how different configurations e.g., synchronous vs asyncrounous
 
 1. **Objective Function: A Gaussian Peak**
 
-   We define our objective function \( f(x,y) \) as a 2D Gaussian centered at \((x=0.2, y=0.1)\) with a standard deviation of \(0.1\):
+   We define our (fake) objective function f(x,y) as a 2D Gaussian centered at x=0.2, y=0.1 with a standard deviation of 0.1:
 
    ![top view](figures/gaussian_response.png)
 
-   This function provides a smooth, unimodal landscape, ideal for demonstrating how an optimizer can efficiently converge to the peak.
+   This function provides a smooth, unimodal landscape, ideal for demonstrating how an optimizer can efficiently converge to a peak.
 
 2. **Parameter Space**
 
-   - **Parameters**: \( x, y \)
-   - **Bounds**: Both \( x \) and \( y \) range from \(-1\) to \(1\).
+   - **Parameters**: x, y
+   - **Bounds**: Both x and y range from -1 to 1.
    
    This well-defined and normalized parameter space ensures the optimizer works over a finite and manageable domain.
 
 3. **Grid Sweep (Reference Baseline)**
 
-   A grid search is performed over a \(51 X 51\) grid, evaluating \( f(x,y) \) at each point. While this brute-force approach gives a full overview of the surface, it is computationally expensive for higher-dimensional problems. Nevertheless, it serves as a useful baseline and visualization tool.
-
-   By examining the color map generated from the grid, we gain a comprehensive understanding of where the global maximum lies before applying more intelligent sampling methods.
+   A grid search is performed over a 51 X 51 grid, evaluating f(x,y)  at each point. While this brute-force approach gives a full overview of the surface, it is computationally expensive for higher-dimensional or expensive to sammple problems.
 
 4. **Bayesian Optimization Setup with Ax**
 
-   Bayesian optimization leverages a surrogate model (commonly a Gaussian Process) to reason about the objective function. The Ax platform simplifies specifying:
+   Bayesian optimization leverages a surrogate model (commonly a Gaussian Process Regression) to reason about the objective function. The Ax platform simplifies specifying:
 
    - **Initial Exploration (Sobol)**:
-     The process begins with a batch of Sobol-generated samples to cover the parameter space evenly. This ensures a good initial "map" of the landscape.
+     The process begins with a batch of [Sobol-generated](https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis) samples to cover the parameter space evenly. This ensures a good initial "map" of the landscape.
 
    - **Subsequent Exploitation (GPEI)**:
      After initial sampling, a Gaussian Process (GP) model is used in conjunction with the Expected Improvement (EI) acquisition function. The GP surrogate models the observed data and predicts unobserved points. EI guides the selection of the next points by balancing **exploitation** (sampling near known good points) and **exploration** (reducing uncertainty in less-sampled regions).
 
    - **Exploration Phase (qNIPV)**:
-     To prevent getting stuck in local maxima, the optimization occasionally switches to an exploration-driven criterion like Negative Integrated Posterior Variance (qNIPV). This helps refine the surrogate model and encourages discovering new promising areas.
+     To prevent getting stuck in local maxima, the optimization occasionally switches to an exploration-driven criterion like Negative Integrated Posterior Variance (qNIPV). This helps refine the surrogate model and encourages discovering new promising areas. qNIPV is agnostic to the direction, it's goal is to minimize a global measure of uncertainty of the model.
 
 5. **Adaptive Strategy: Exploitation vs. Exploration**
 
