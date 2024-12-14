@@ -48,10 +48,10 @@ The tutorial showcases ax's ability to be ran in sync or async mode with varying
 
 Bayesian Optimization leverages a surrogate model, typically Gaussian Process Regression (GPR), to model the objective function and guide sampling. The Ax platform enables this process through a well-structured workflow:
 
-## **Initial Exploration ([Sobol-generated](https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis) samples)**:
+4.1 **Initial Exploration ([Sobol-generated](https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis) samples)**:
    - A batch of pseudo-random Sobol-generated samples is used to cover the parameter space evenly. This phase establishes a broad understanding of the landscape, providing a foundation for further refinement.
 
-## **Adaptive Sampling**:
+4.2 **Adaptive Sampling**:
    - Subsequent iterations adaptively alternate between:
      - **Exploitation**: Using Gaussian Process Expected Improvement (GPEI) to sample near known promising points and refine the model in areas of interest.
      - **Exploration**: Using Negative Integrated Posterior Variance (qNIPV) to sample in less-explored regions and reduce global uncertainty.
@@ -64,10 +64,10 @@ This adaptive strategy ensures efficient progress towards the global optimum whi
 
 The balance between exploitation and exploration is controlled probabilistically through a defined `explore_ratio`:
 
-- **Exploitation (GPEI)**:
+5.1 **Exploitation (GPEI)**:
   - Focuses on improving the current best-known result by sampling near high-performing areas.
   
-- **Exploration (qNIPV)**:
+5.2 **Exploration (qNIPV)**:
   - Samples in regions with high uncertainty to enhance the model's understanding of the entire parameter space.
 
 This dynamic approach prevents the optimizer from prematurely converging on local optima and promotes thorough exploration of the search space.
