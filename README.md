@@ -1,4 +1,20 @@
 # Overview
+Working ipynb notebook demo of `ax_platform==0.4.3`
+
+### Traditional Grid Search on left, BO on right
+
+![top view](figures/output_1.png)
+
+### Now with 90% exploitation & 10% exploration | Normalized inputs, standardized outputs for model fitting
+
+![top view](figures/output_2.png)
+
+### Configuring Mode
+
+![top view](figures/config_rates.png)
+
+
+# Some flash cards on BO
 
 1. **Gaussian Peak Function**:
    - The `gaussian_peak` function represents a 2D Gaussian distribution, centered at coordinates (0.2, 0.1). The standard deviation for both dimensions is set to 0.1, resulting in a peak centered at this point with a smooth, bell-shaped decline.
@@ -37,11 +53,3 @@
      - **Grid Sweep Plot**: The first subplot shows the objective function evaluated over a dense grid of points. This gives a clear picture of the Gaussian peak and serves as the reference for assessing the performance of the optimizer.
      - **Bayesian Optimization Process Plot**: The second subplot illustrates the points sampled by the Bayesian optimization process. The sampled points are shown as black circles overlaid on a color map created via `scipy.interpolate.griddata`. This plot helps visualize how the optimizer explores and exploits the parameter space to converge on the peak of the Gaussian.
    - The distinction between the grid-based visualization and the Bayesian optimization plot helps in understanding the efficiency of the optimizer compared to a brute-force approach of evaluating all points in the parameter space.
-
-### Traditional Grid Search on left, BO on right
-
-![top view](figures/output_1.png)
-
-### Now with 90% exploitation & 10% exploration | Normalized inputs, standardized outputs for model fitting
-
-![top view](figures/output_2.png)
