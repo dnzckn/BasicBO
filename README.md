@@ -20,7 +20,7 @@ After completing BO, we plot the final model's mean and standard deviation, illu
 
 ![Configuring Modes](figures/config_rates.png)
 
-This figure demonstrates how different configurations, such as synchronous vs. asynchronous execution and varying batch sizes, impact the optimization rate.
+The tutorial showcases ax's ability to be ran in sync or async mode with varying batch sizes. The figure demonstrates the tradeoffs between rate and error on a short 20 shot on goal experiment. 
 
 ---
 
@@ -37,9 +37,8 @@ This figure demonstrates how different configurations, such as synchronous vs. a
 2. ### Parameter Space
 
    - **Parameters**: x, y
-   - **Bounds**: Both x and y range from -1 to 1.
-
-   A well-defined, normalized parameter space ensures the optimizer operates within a finite and manageable domain.
+   - **Bounds**: Both x and y range from -1 to 1. 
+   n.b. the params nor bounds need not be normalized.
 
 3. ### Grid Sweep (Reference Baseline)
 
@@ -47,25 +46,31 @@ This figure demonstrates how different configurations, such as synchronous vs. a
 
 4. ### Bayesian Optimization Setup with Ax
 
-   Bayesian Optimization employs a surrogate model, typically Gaussian Process Regression (GPR), to model the objective function. The Ax platform facilitates the setup by specifying:
+Bayesian Optimization leverages a surrogate model, typically Gaussian Process Regression (GPR), to model the objective function and guide sampling. The Ax platform enables this process through a well-structured workflow:
 
-   - **Initial Exploration ([Sobol-generated](https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis) samples)**:
-     Begins with a batch of Sobol-generated samples to evenly cover the parameter space, establishing a reliable initial "map" of the landscape.
+## **Initial Exploration ([Sobol-generated](https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis) samples)**:
+   - A batch of pseudo-random Sobol-generated samples is used to cover the parameter space evenly. This phase establishes a broad understanding of the landscape, providing a foundation for further refinement.
 
-   - **Subsequent Exploitation (GPEI)**:
-     Utilizes a Gaussian Process model combined with the Expected Improvement (EI) acquisition function. The GP models observed data and predicts unobserved points, while EI balances **exploitation** (sampling near known good points) and **exploration** (reducing uncertainty in less-sampled regions).
+## **Adaptive Sampling**:
+   - Subsequent iterations adaptively alternate between:
+     - **Exploitation**: Using Gaussian Process Expected Improvement (GPEI) to sample near known promising points and refine the model in areas of interest.
+     - **Exploration**: Using Negative Integrated Posterior Variance (qNIPV) to sample in less-explored regions and reduce global uncertainty.
 
-   - **Exploration Phase (qNIPV)**:
-     Occasionally switches to a criterion like Negative Integrated Posterior Variance (qNIPV) to prevent the optimizer from getting stuck in local maxima. qNIPV minimizes the global uncertainty of the model without bias toward any specific direction.
+This adaptive strategy ensures efficient progress towards the global optimum while avoiding local maxima.
 
-5. ### Adaptive Strategy: Exploitation vs. Exploration
+---
 
-   Each iteration decides between exploitation and exploration based on a defined probability (`explore_ratio`):
+5. ### Adaptive Strategy: Balancing Exploitation and Exploration
 
-   - **Exploitation (GPEI)**: Focuses on areas likely to improve the current best point.
-   - **Exploration (qNIPV)**: Samples points in less-known regions to enhance the model and discover new promising areas. Direction agnostic. 
+The balance between exploitation and exploration is controlled probabilistically through a defined `explore_ratio`:
 
-   This balance ensures efficient search towards the global optimum without premature convergence.
+- **Exploitation (GPEI)**:
+  - Focuses on improving the current best-known result by sampling near high-performing areas.
+  
+- **Exploration (qNIPV)**:
+  - Samples in regions with high uncertainty to enhance the model's understanding of the entire parameter space.
+
+This dynamic approach prevents the optimizer from prematurely converging on local optima and promotes thorough exploration of the search space.
 
 6. ### Stopping Criteria
 
