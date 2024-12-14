@@ -1,120 +1,112 @@
-# Overview
-This repository contains a working Jupyter notebook demonstration of Bayesian Optimization using [`ax_platform==0.4.3`](https://github.com/facebook/Ax). We employ a synthetic 2D Gaussian "peak" function as the objective and demonstrate optimization strategies ranging from a brute-force grid search to a guided Bayesian Optimization (BO) process.
+# Bayesian Optimization Demonstration
 
-### Traditional Grid Search (Left) vs. Bayesian Optimization (Right)
+This repository contains a Jupyter notebook that demonstrates Bayesian Optimization (BO) using [`ax_platform==0.4.3`](https://github.com/facebook/Ax). We utilize a synthetic 2D Gaussian peak function as the objective and compare optimization strategies from brute-force grid search to guided Bayesian Optimization.
 
-The figure below shows a comparison of a traditional grid search approach on the left and a Bayesian Optimization approach on the right. The grid search exhaustively samples a dense grid of points across the parameter space, whereas the Bayesian Optimization adaptively selects points to evaluate, leveraging a probabilistic model to converge more efficiently to the global optimum.
+## Overview
 
-![top view](figures/output_1.png)
+### Traditional Grid Search vs. Bayesian Optimization
+
+![Comparison](figures/output_1.png)
+
+The figure above compares a traditional grid search (left) with Bayesian Optimization (right). Grid search exhaustively samples a dense grid across the parameter space, while Bayesian Optimization adaptively selects evaluation points using a probabilistic model to efficiently converge to the global optimum.
 
 ### Optimized Model
 
-After BO is complete we can plot the final model. The figure below shows the optimized model mean and standard deviation
+![Final Model](figures/final_model.png)
 
-![top view](figures/final_model.png)
-
+After completing BO, we plot the final model's mean and standard deviation, illustrating the optimized surrogate.
 
 ### Configuring the Optimization Mode
 
-This figure shows how different configurations e.g., synchronous vs asyncrounous and batch size can impact the optimization rate:
+![Configuring Modes](figures/config_rates.png)
 
-![top view](figures/config_rates.png)
+This figure demonstrates how different configurations, such as synchronous vs. asynchronous execution and varying batch sizes, impact the optimization rate.
 
 ---
 
-# Key Concepts of the Bayesian Optimization (BO) Approach
+## Key Concepts of Bayesian Optimization (BO)
 
-1. **Objective Function: A Gaussian Peak**
+1. ### Objective Function: A Gaussian Peak
 
-   We define our (fake) objective function f(x,y) as a 2D Gaussian centered at x=0.2, y=0.1 with a standard deviation of 0.1:
+   We define our objective function f(x, y) as a 2D Gaussian centered at x=0.2, y=0.1 with a standard deviation of 0.1:
 
-   ![top view](figures/gaussian_response.png)
+   ![Gaussian Response](figures/gaussian_response.png)
 
-   This function provides a smooth, unimodal landscape, ideal for demonstrating how an optimizer can efficiently converge to a peak.
+   This smooth, unimodal landscape is ideal for showcasing how an optimizer efficiently converges to a peak.
 
-2. **Parameter Space**
+2. ### Parameter Space
 
    - **Parameters**: x, y
    - **Bounds**: Both x and y range from -1 to 1.
-   
-   This well-defined and normalized parameter space ensures the optimizer works over a finite and manageable domain.
 
-3. **Grid Sweep (Reference Baseline)**
+   A well-defined, normalized parameter space ensures the optimizer operates within a finite and manageable domain.
 
-   A grid search is performed over a 51 X 51 grid, evaluating f(x,y)  at each point. While this brute-force approach gives a full overview of the surface, it is computationally expensive for higher-dimensional or expensive to sammple problems.
+3. ### Grid Sweep (Reference Baseline)
 
-4. **Bayesian Optimization Setup with Ax**
+   We perform a grid search over a 51 by 51 grid, evaluating f(x, y) at each point. While this brute-force approach provides a comprehensive overview of the surface, it becomes computationally expensive for higher-dimensional or expensive-to-sample problems.
 
-   Bayesian optimization leverages a surrogate model (commonly a Gaussian Process Regression) to reason about the objective function. The Ax platform simplifies specifying:
+4. ### Bayesian Optimization Setup with Ax
 
-   - **Initial Exploration (Sobol)**:
-     The process begins with a batch of [Sobol-generated](https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis) samples to cover the parameter space evenly. This ensures a good initial "map" of the landscape.
+   Bayesian Optimization employs a surrogate model, typically Gaussian Process Regression (GPR), to model the objective function. The Ax platform facilitates the setup by specifying:
+
+   - **Initial Exploration ([Sobol-generated](https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis) samples)**:
+     Begins with a batch of Sobol-generated samples to evenly cover the parameter space, establishing a reliable initial "map" of the landscape.
 
    - **Subsequent Exploitation (GPEI)**:
-     After initial sampling, a Gaussian Process (GP) model is used in conjunction with the Expected Improvement (EI) acquisition function. The GP surrogate models the observed data and predicts unobserved points. EI guides the selection of the next points by balancing **exploitation** (sampling near known good points) and **exploration** (reducing uncertainty in less-sampled regions).
+     Utilizes a Gaussian Process model combined with the Expected Improvement (EI) acquisition function. The GP models observed data and predicts unobserved points, while EI balances **exploitation** (sampling near known good points) and **exploration** (reducing uncertainty in less-sampled regions).
 
    - **Exploration Phase (qNIPV)**:
-     To prevent getting stuck in local maxima, the optimization occasionally switches to an exploration-driven criterion like Negative Integrated Posterior Variance (qNIPV). This helps refine the surrogate model and encourages discovering new promising areas. qNIPV is agnostic to the direction, it's goal is to minimize a global measure of uncertainty of the model.
+     Occasionally switches to a criterion like Negative Integrated Posterior Variance (qNIPV) to prevent the optimizer from getting stuck in local maxima. qNIPV minimizes the global uncertainty of the model without bias toward any specific direction.
 
-5. **Adaptive Strategy: Exploitation vs. Exploration**
+5. ### Adaptive Strategy: Exploitation vs. Exploration
 
-   Each iteration decides whether to exploit or explore:
-   
-   - **Exploitation (GPEI)**: Focus on areas likely to improve the current best point.  
-   - **Exploration (qNIPV)**: Sample points in less known regions to improve the model and find potentially better maxima.
+   Each iteration decides between exploitation and exploration based on a defined probability (`explore_ratio`):
 
-   A probability (`explore_ratio`) controls how often the optimizer explores instead of exploits, ensuring a balanced search.
+   - **Exploitation (GPEI)**: Focuses on areas likely to improve the current best point.
+   - **Exploration (qNIPV)**: Samples points in less-known regions to enhance the model and discover new promising areas.
 
-6. **Stopping Criteria**
+   This balance ensures efficient search towards the global optimum without premature convergence.
 
-   To limit unnecessary computations, we introduce early stopping conditions:
-   
-   - **Threshold**: If the best observed value surpasses a predefined threshold, stop early.
-   - **Epsilon and Patience**: If consecutive exploitation steps fail to improve the best value by at least `epsilon` for a certain number of steps (`patience`), the algorithm stops. This prevents endlessly searching once significant improvements are unlikely.
+6. ### Stopping Criteria
 
-   These stopping criteria make Bayesian Optimization practical for scenarios where evaluations are expensive.
+   To prevent unnecessary computations, we implement early stopping conditions:
 
-7. **Normalization and Standardization**
+   - **Threshold**: Stops early if the best observed value surpasses a predefined threshold.
+   - **Epsilon and Patience**: Halts if consecutive exploitation steps do not improve the best value by at least epsilon for a certain number of steps (patience), avoiding endless searching when significant improvements are unlikely.
+
+   These criteria make BO practical for scenarios with expensive evaluations.
+
+7. ### Normalization and Standardization
 
    For robust model fitting:
-   
-   - **Input Normalization**: Ensures all parameters lie in similar numeric ranges, improving model stability.
-   - **Output Standardization**: The objective values are standardized to have zero mean and unit variance, aiding the GP in more accurate and stable predictions.
 
-8. **Visualization**
+   - **Input Normalization**: Ensures all parameters lie within similar numeric ranges, enhancing model stability.
+   - **Output Standardization**: Standardizes objective values to have zero mean and unit variance, aiding the GP in accurate and stable predictions.
 
-   Two key plots help interpret the optimization process:
-   
-   - **Grid Sweep Plot**: Shows the true function values across the parameter space. This "map" is a reference for how close our optimizer comes to the global maximum.
-   
-   - **Bayesian Optimization Plot**: Displays the points chosen by the optimizer overlaid on an interpolated surface built from these points. This lets us see how the optimizer moves from broad exploration to narrow exploitation, honing in on the peak.
+8. ### Visualization
+
+   - **Grid Sweep Plot**: Displays the true function values across the parameter space, serving as a reference for the optimizer's performance.
+   - **Bayesian Optimization Plot**: Shows optimizer-selected points over an interpolated surface from these points, illustrating the transition from broad exploration to focused exploitation.
 
 ---
 
-# Some "Flash Cards" on BO
+## Key Concepts Summary
 
-1. **Gaussian Peak Function**:  
-   A simple and smooth function that represents our "test problem", enabling us to understand the BO process on a known landscape.
-
-2. **Grid Sweep**:  
-   Provides a brute-force baseline. While computationally expensive, it's an excellent visualization tool and reference.
-
-3. **Bayesian Optimization Steps**:  
-   Sequential decision-making on which points to sample next, informed by a surrogate model (GP) and an acquisition function (EI or qNIPV).
-
-4. **Balance Between Exploration and Exploitation**:  
-   Maintains progress towards global optimum rather than prematurely converging to a local maximum.
-
-5. **Stopping Conditions**:  
-   Efficiently halt the search when further improvements are unlikely, saving computational resources.
+- **Objective Function**: A controlled 2D Gaussian peak used to understand the BO process on a known landscape.
+- **Parameter Space**: Normalized parameters x and y ranging from -1 to 1.
+- **Grid Sweep**: A brute-force baseline providing exhaustive coverage, useful for visualization and reference.
+- **Bayesian Optimization Steps**: Involves sequential decision-making on point selection using a surrogate model (GP) and acquisition functions (EI, qNIPV).
+- **Exploration vs. Exploitation**: Balances global search with local optimization to ensure convergence to the global optimum.
+- **Stopping Conditions**: Efficiently terminates the search when further improvements are unlikely, conserving computational resources.
 
 ---
 
-This notebook and codebase demonstrate how these concepts integrate seamlessly with `ax_platform`. By walking through initial random sampling, modeling steps, adaptive exploration-exploitation trade-offs, and early stopping, you can get a practical sense of how Bayesian Optimization tackles real-world, black-box optimization tasks efficiently.
+This notebook and codebase demonstrate the integration of these concepts with `ax_platform`. By following the workflow—from initial random sampling and model updates to adaptive exploration-exploitation trade-offs and early stopping—you gain practical insights into how Bayesian Optimization efficiently tackles real-world, black-box optimization tasks.
 
-# For further reading check out some real life ax-dev demos of BO accelerating materials discovery:
+## Further Reading
 
-- [PASCAL: the perovskite automated spin coat assembly line accelerates composition screening in triple-halide perovskite alloys](https://pubs.rsc.org/en/content/articlelanding/2024/dd/d4dd00075g)
+Explore real-life Ax development demos where BO accelerates materials discovery:
 
-- [Bayesian optimization and prediction of the durability of triple-halide perovskite thin films under light and heat stressors](https://pubs.rsc.org/en/content/articlelanding/2024/ma/d4ma00747f)
+- [PASCAL: The Perovskite Automated Spin Coat Assembly Line Accelerates Composition Screening in Triple-Halide Perovskite Alloys](https://pubs.rsc.org/en/content/articlelanding/2024/dd/d4dd00075g)
 
+- [Bayesian Optimization and Prediction of the Durability of Triple-Halide Perovskite Thin Films Under Light and Heat Stressors](https://pubs.rsc.org/en/content/articlelanding/2024/ma/d4ma00747f)
