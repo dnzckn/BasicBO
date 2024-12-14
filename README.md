@@ -34,7 +34,7 @@ This figure shows how different configurations e.g., synchronous vs asyncrounous
 
 3. **Grid Sweep (Reference Baseline)**
 
-   A grid search is performed over a \(51 \times 51\) grid, evaluating \( f(x,y) \) at each point. While this brute-force approach gives a full overview of the surface, it is computationally expensive for higher-dimensional problems. Nevertheless, it serves as a useful baseline and visualization tool.
+   A grid search is performed over a \(51 X 51\) grid, evaluating \( f(x,y) \) at each point. While this brute-force approach gives a full overview of the surface, it is computationally expensive for higher-dimensional problems. Nevertheless, it serves as a useful baseline and visualization tool.
 
    By examining the color map generated from the grid, we gain a comprehensive understanding of where the global maximum lies before applying more intelligent sampling methods.
 
