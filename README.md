@@ -10,13 +10,14 @@ This repository contains a Jupyter notebook that demonstrates Bayesian Optimizat
 
 ![Comparison](figures/output_1.png)
 
-The figure above compares a traditional grid search (left) with Bayesian Optimization (right). Grid search exhaustively samples a dense grid across the parameter space, while Bayesian Optimization adaptively selects evaluation points using a probabilistic model to efficiently converge to the global optimum.
+The figure above compares a traditional grid search (upper left) with Bayesian Optimization (upper right). Lower right shows the resulting final model, along with its predictive standard deviation (lower right).
 
-### Optimized Model
+### Convergence 
 
-![Final Model](figures/final_model.png)
+![Convergence](figures/convergence.png)
 
-After completing BO, we plot the final model's mean and standard deviation, illustrating the optimized surrogate.
+Typically BO is initilized with random sampling of the search space, here we use SOBOL. After initilization the model uses observed data to update the surrogate model. Expected Improvement is then used to generate new trials. 
+
 
 ### Configuring the Optimization Mode
 
