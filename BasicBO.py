@@ -3,7 +3,6 @@ import random
 
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
 
 from ax.core.observation import ObservationFeatures
