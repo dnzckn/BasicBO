@@ -100,7 +100,7 @@ These criteria make BO practical for scenarios with expensive evaluations.
 
 - **Objective Function**: A controlled 2D Gaussian peak used to understand the BO process on a known landscape.
 - **Parameter Space**: Parameters x and y with respective search ranges. Ax handles normalization and standardization in the back end.
-- **Grid Sweep**: A brute-force baseline providing exhaustive coverage, useful for visualization and reference.
+- **Grid Sweep**: A traditional way of experiment design where a full factorial of your parameters are observed. 
 - **Bayesian Optimization Steps**: Sequential decision-making on point selection using a surrogate model (GP) and acquisition functions (EI, qNIPV).
 - **Exploration vs. Exploitation**: Balances global search with local optimization to ensure convergence to the global optimum.
 - **Stopping Conditions**: Efficiently terminates the search when further improvements are unlikely, conserving computational resources.
