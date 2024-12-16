@@ -17,12 +17,12 @@ from botorch.models.gp_regression import SingleTaskGP
 
 class ZReader:
     """A synthetic response object simulating a noisy Gaussian-like surface as the objective.
-    In reality you would replace with your actual objective. 
-    
+    In reality you would replace with your actual objective.
+
     E.g., for solar cells, you could seek to optimize the cell's measured
-    open-circuit voltage as a function of its chemistry. 
+    open-circuit voltage as a function of its chemistry.
     """
-    
+
     def __init__(self, centers, sigma=0.1, n_samples=1):
         """
         Initialize the Gaussian response surface.
@@ -285,7 +285,6 @@ def bayesian_optimizer_iterator_sync(
             ax_client.complete_trial(trial_index, {"z": (z_mean, z_sem)})
 
             if z_mean > best_value:
-                improvement = z_mean - best_value
                 best_value = z_mean
                 # Reset patience only if in exploitation
                 if not explore:
@@ -312,7 +311,7 @@ def bayesian_optimizer_iterator_sync(
                 # Yield final model
                 yield {"final_model": ax_client.generation_strategy.model}
                 return
-        if step == trial_budget-1:
+        if step == trial_budget - 1:
             print(f"Trial budget met")
 
     # If we exit the loop naturally, yield the final model
