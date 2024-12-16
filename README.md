@@ -1,6 +1,8 @@
 # Bayesian Optimization with https://ax.dev/
 
-This repo demonstrates Bayesian Optimization (BO) using [`ax_platform==0.4.3`](https://github.com/facebook/Ax). We utilize a synthetic 2D Gaussian peak function as the objective and compare optimization strategies, from brute-force grid search to guided Bayesian Optimization.
+This repo demonstrates Bayesian Optimization (BO) using [`ax_platform==0.4.3`](https://github.com/facebook/Ax). 
+
+The demo showcases Bayesian optimization's ability to locate a gaussian peak in a 2D search space with less points than in a typical grid search. 
 
 ---
 
