@@ -1,8 +1,6 @@
 # Bayesian Optimization with https://ax.dev/
 
-This repo demonstrates Bayesian Optimization (BO) using [`ax_platform==0.4.3`](https://github.com/facebook/Ax). 
-
-The demo showcases Bayesian optimization's ability to locate a gaussian peak in a 2D search space with less points than in a typical grid search. 
+This repo demonstrates active learning using [`ax_platform==0.4.3`](https://github.com/facebook/Ax) to conduct Bayesian optimization and compares its result to traditional grid search design of experiment.
 
 ---
 
