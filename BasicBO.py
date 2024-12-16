@@ -1,11 +1,8 @@
 import asyncio
-import random
 
 import numpy as np
 import torch
-from scipy.interpolate import griddata
 
-from ax.core.observation import ObservationFeatures
 from ax.modelbridge.generation_strategy import GenerationStrategy, GenerationStep
 from ax.modelbridge.registry import Models
 from ax.models.torch.botorch_modular.surrogate import Surrogate
@@ -184,7 +181,7 @@ async def bayesian_optimizer_iterator_async(
 
         steps_taken += 1
         if steps_taken == trial_budget:
-            print(f"Trial budget met")
+            print("Trial budget met")
 
     # If we exit the loop naturally, yield the final model
     yield {"final_model": ax_client.generation_strategy.model}
@@ -312,7 +309,7 @@ def bayesian_optimizer_iterator_sync(
                 yield {"final_model": ax_client.generation_strategy.model}
                 return
         if step == trial_budget - 1:
-            print(f"Trial budget met")
+            print("Trial budget met")
 
     # If we exit the loop naturally, yield the final model
     yield {"final_model": ax_client.generation_strategy.model}
