@@ -35,8 +35,6 @@ We define our objective function f(x, y) as a 2D Gaussian centered at x = 0.2, y
 
 ![Gaussian Response](figures/gaussian_response.png)
 
-This smooth, unimodal landscape is ideal for showcasing how an optimizer efficiently converges to a peak.
-
 ---
 
 ### 2. Parameter Space
