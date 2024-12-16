@@ -1,6 +1,6 @@
-# Bayesian Optimization Demonstration
+# Bayesian Optimization with https://ax.dev/
 
-This repository contains a Jupyter notebook that demonstrates Bayesian Optimization (BO) using [`ax_platform==0.4.3`](https://github.com/facebook/Ax). We utilize a synthetic 2D Gaussian peak function as the objective and compare optimization strategies, from brute-force grid search to guided Bayesian Optimization.
+This repo demonstrates Bayesian Optimization (BO) using [`ax_platform==0.4.3`](https://github.com/facebook/Ax). We utilize a synthetic 2D Gaussian peak function as the objective and compare optimization strategies, from brute-force grid search to guided Bayesian Optimization.
 
 ---
 
