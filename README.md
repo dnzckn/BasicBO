@@ -55,7 +55,7 @@ We perform a grid search over a 51x51 grid, evaluating f(x, y) at each point. Wh
 
 Bayesian Optimization leverages a surrogate model, typically Gaussian Process Regression (GPR), to model the objective function and guide sampling. The Ax platform enables this process through a well-structured workflow:
 
-#### 4.1 Initial Exploration ([Sobol-generated](https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis) samples)
+#### 4.1 Initial Exploration ([Sobol-generated](https://en.wikipedia.org/wiki/Sobol_sequence) samples)
 
 - A batch of pseudo-random Sobol-generated samples is used to cover the parameter space evenly. This phase establishes a broad understanding of the landscape, providing a foundation for further refinement.
 
