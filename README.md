@@ -107,9 +107,7 @@ These criteria make BO practical for scenarios with expensive evaluations.
 
 ---
 
-## Further Reading
-
-Explore real-life Ax development demos where BO accelerates materials discovery:
+## BO in action: 
 
 - [PASCAL: The Perovskite Automated Spin Coat Assembly Line Accelerates Composition Screening in Triple-Halide Perovskite Alloys](https://pubs.rsc.org/en/content/articlelanding/2024/dd/d4dd00075g)
 - [Bayesian Optimization and Prediction of the Durability of Triple-Halide Perovskite Thin Films Under Light and Heat Stressors](https://pubs.rsc.org/en/content/articlelanding/2024/ma/d4ma00747f)
