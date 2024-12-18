@@ -59,6 +59,9 @@ Bayesian Optimization leverages a surrogate model, typically Gaussian Process Re
 
 - A batch of pseudo-random Sobol-generated samples is used to cover the parameter space evenly. This phase establishes a broad understanding of the landscape, providing a foundation for further refinement.
 
+![image](https://github.com/user-attachments/assets/a79de2af-143c-4687-9943-8e0a23c0ee80)
+
+
 #### 4.2 Adaptive Sampling
 
 - Subsequent iterations adaptively alternate between:
