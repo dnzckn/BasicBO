@@ -43,20 +43,21 @@ class SyntheticGaussian:
         """
         params = np.array(params)
         # Gaussian-like function
-        z = np.exp(-np.sum((params - self.centers) ** 2) / (2 * self.sigma**2))
+        objective = np.exp(-np.sum((params - self.centers) ** 2) / (2 * self.sigma**2))
         if self.n_samples > 1:
             # Add noise for multiple samples and compute mean and SEM
-            noisy_z = [
-                z + np.random.normal(0, self.sigma) for _ in range(self.n_samples)
+            noisy_objective = [
+                objective + np.random.normal(0, self.sigma)
+                for _ in range(self.n_samples)
             ]
-            mean_z = np.mean(noisy_z)
-            sem_z = np.std(noisy_z) / np.sqrt(self.n_samples)
-            return mean_z, sem_z
-        return z, 0.0
+            mean_objective = np.mean(noisy_objective)
+            sem_objective = np.std(noisy_objective) / np.sqrt(self.n_samples)
+            return mean_objective, sem_objective
+        return objective, 0.0
 
 
 class BayesianOptimizerIterator:
-    """An iterator class for performing Bayesian Optimization with Ax.
+    """An iterator class for performing Bayesian Optimization with Ax==0.4.3.
 
     Example usage:
     --------------
@@ -64,7 +65,7 @@ class BayesianOptimizerIterator:
     >>> param_bounds = [[-1.0, 1.0], [-1.0, 1.0]]
     >>> objective_function = SyntheticGaussian(centers=[0.2, 0.1], sigma=0.1, n_samples=1)
     >>> suggested_params = []
-    >>> observed_z = []
+    >>> observed_objective = []
     >>> best_result = {"params": None, "value": float("-inf")}
     >>> run_async = True
     >>> num_initial_samples = 20
@@ -74,6 +75,7 @@ class BayesianOptimizerIterator:
     >>> threshold = 0.999
     >>> epsilon = 0.001
     >>> patience = 20
+    >>> maximize = True
     >>> bo_iterator = BayesianOptimizerIterator(
     >>>     objective_function,
     >>>     param_names,
@@ -85,21 +87,22 @@ class BayesianOptimizerIterator:
     >>>     threshold=threshold,
     >>>     epsilon=epsilon,
     >>>     patience=patience,
-    >>>     run_async=run_async
+    >>>     run_async=run_async,
+    >>>     maximize=maximize,
     >>> )
     >>> async for output in bo_iterator:
     >>>     if "final_model" in output:
     >>>         output = output["final_model"]
     >>>     else:
     >>>         params = output
-    >>>         z_mean, z_sem = objective_function.read([params[name] for name in param_names])
+    >>>         objective_mean, objective_sem = bo_iterator.evaluate_objective(params)
     >>>         suggested_params.append(params)
-    >>>         observed_z.append(z_mean)
-    >>>         if z_mean > best_result["value"]:
-    >>>             best_result = {"params": params, "value": z_mean}
+    >>>         observed_objective.append(objective_mean)
+    >>>         if objective_mean > best_result["value"]:
+    >>>             best_result = {"params": params, "value": objective_mean}
     >>> results = {
     >>>     "suggested_params": suggested_params,
-    >>>     "observed_z": observed_z,
+    >>>     "observed_objective": observed_objective,
     >>>     "best_result": best_result,
     >>> }
     """
@@ -166,7 +169,7 @@ class BayesianOptimizerIterator:
                 {"name": name, "type": "range", "bounds": bounds}
                 for name, bounds in zip(param_names, param_bounds)
             ],
-            objectives={"z": ObjectiveProperties(minimize=not maximize)},
+            objectives={"objective": ObjectiveProperties(minimize=not maximize)},
             parameter_constraints=[],
             tracking_metric_names=[],
         )
@@ -174,6 +177,18 @@ class BayesianOptimizerIterator:
         self.no_improvement_count = 0
         self.last_best_value = self.best_value
         self.steps_taken = 0
+
+    def evaluate_objective(self, params: Dict[str, float]) -> Tuple[float, float]:
+        """
+        Evaluate the objective function.
+
+        Args:
+            params (dict): Parameter values at which to evaluate.
+        Returns:
+            tuple: (mean, sem) representing the evaluated objective and its SEM.
+        """
+        # This is where you would adjust to your objective function with the expected output
+        return self.objective_function.read([params[name] for name in self.param_names])
 
     async def get_next_batch_async(self) -> List[Tuple[Dict[str, float], int]]:
         """
@@ -256,14 +271,14 @@ class BayesianOptimizerIterator:
         trials = self.get_next_batch_sync()
         for params, trial_index in trials:
             yield params  # yield parameter dictionary
-            z_mean, z_sem = self.objective_function.read(
-                [params[name] for name in self.param_names]
+            objective_mean, objective_sem = self.evaluate_objective(params)
+            self.complete_trial_sync(
+                trial_index, {"objective": (objective_mean, objective_sem)}
             )
-            self.complete_trial_sync(trial_index, {"z": (z_mean, z_sem)})
-            if (self.maximize and z_mean > self.best_value) or (
-                not self.maximize and z_mean < self.best_value
+            if (self.maximize and objective_mean > self.best_value) or (
+                not self.maximize and objective_mean < self.best_value
             ):
-                self.best_value = z_mean
+                self.best_value = objective_mean
                 self.no_improvement_count = 0
 
         self.last_best_value = self.best_value
@@ -288,15 +303,15 @@ class BayesianOptimizerIterator:
             trials = self.get_next_batch_sync()
             for params, trial_index in trials:
                 yield params  # yield parameter dictionary
-                z_mean, z_sem = self.objective_function.read(
-                    [params[name] for name in self.param_names]
+                objective_mean, objective_sem = self.evaluate_objective(params)
+                self.complete_trial_sync(
+                    trial_index, {"objective": (objective_mean, objective_sem)}
                 )
-                self.complete_trial_sync(trial_index, {"z": (z_mean, z_sem)})
 
-                if (self.maximize and z_mean > self.best_value) or (
-                    not self.maximize and z_mean < self.best_value
+                if (self.maximize and objective_mean > self.best_value) or (
+                    not self.maximize and objective_mean < self.best_value
                 ):
-                    self.best_value = z_mean
+                    self.best_value = objective_mean
                     if not explore:
                         self.no_improvement_count = 0
                 else:
@@ -343,14 +358,14 @@ class BayesianOptimizerIterator:
         trials = await self.get_next_batch_async()
         for params, trial_index in trials:
             yield params  # yield parameter dictionary
-            z_mean, z_sem = self.objective_function.read(
-                [params[name] for name in self.param_names]
+            objective_mean, objective_sem = self.evaluate_objective(params)
+            await self.complete_trial_async(
+                trial_index, {"objective": (objective_mean, objective_sem)}
             )
-            await self.complete_trial_async(trial_index, {"z": (z_mean, z_sem)})
-            if (self.maximize and z_mean > self.best_value) or (
-                not self.maximize and z_mean < self.best_value
+            if (self.maximize and objective_mean > self.best_value) or (
+                not self.maximize and objective_mean < self.best_value
             ):
-                self.best_value = z_mean
+                self.best_value = objective_mean
                 self.no_improvement_count = 0
 
         self.last_best_value = self.best_value
@@ -375,15 +390,15 @@ class BayesianOptimizerIterator:
             trials = await self.get_next_batch_async()
             for params, trial_index in trials:
                 yield params  # yield parameter dictionary
-                z_mean, z_sem = self.objective_function.read(
-                    [params[name] for name in self.param_names]
+                objective_mean, objective_sem = self.evaluate_objective(params)
+                await self.complete_trial_async(
+                    trial_index, {"objective": (objective_mean, objective_sem)}
                 )
-                await self.complete_trial_async(trial_index, {"z": (z_mean, z_sem)})
 
-                if (self.maximize and z_mean > self.best_value) or (
-                    not self.maximize and z_mean < self.best_value
+                if (self.maximize and objective_mean > self.best_value) or (
+                    not self.maximize and objective_mean < self.best_value
                 ):
-                    self.best_value = z_mean
+                    self.best_value = objective_mean
                     if not explore:
                         self.no_improvement_count = 0
                 else:
