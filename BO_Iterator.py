@@ -295,11 +295,14 @@ class BayesianOptimizerIterator:
                     "surrogate": Surrogate(SingleTaskGP),
                     "botorch_acqf_class": qNegIntegratedPosteriorVariance,
                     "acquisition_options": {"mc_points": 50},
+                    "torch_device": self.device,
                 }
             else:
                 print("$ Using GPEI (Exploitation)")
                 self.ax_client.generation_strategy._steps[-1].model = Models.GPEI
-                self.ax_client.generation_strategy._steps[-1].model_kwargs = {}
+                self.ax_client.generation_strategy._steps[-1].model_kwargs = {
+                    "torch_device": self.device
+                }
 
             trials = self.get_next_batch_sync()
             for params, trial_index in trials:
@@ -382,11 +385,14 @@ class BayesianOptimizerIterator:
                     "surrogate": Surrogate(SingleTaskGP),
                     "botorch_acqf_class": qNegIntegratedPosteriorVariance,
                     "acquisition_options": {"mc_points": 50},
+                    "torch_device": self.device,
                 }
             else:
                 print("$ Using GPEI (Exploitation)")
                 self.ax_client.generation_strategy._steps[-1].model = Models.GPEI
-                self.ax_client.generation_strategy._steps[-1].model_kwargs = {}
+                self.ax_client.generation_strategy._steps[-1].model_kwargs = {
+                    "torch_device": self.device
+                }
 
             trials = await self.get_next_batch_async()
             for params, trial_index in trials:
@@ -443,7 +449,9 @@ class SobolIterator:
     >>>     param_names=["x0", "x1"],
     >>>     param_bounds=[(0, 1), (0, 1)],
     >>>     n_sobol=1000,
-    >>>     objective_function=your_objective_function
+    >>>     objective_function=your_objective_function,
+    >>>     threshold=0.9,
+    >>>     maximize=True
     >>> )
     >>> for param_dict in iterator:
     >>>     x0 = param_dict["x0"]
@@ -459,6 +467,8 @@ class SobolIterator:
         param_bounds: List[Tuple[float, float]],
         n_sobol: int = 30,
         objective_function=None,
+        threshold: Union[float, None] = None,
+        maximize: bool = True,
     ):
         """
         Initialize the SobolIterator.
@@ -468,11 +478,15 @@ class SobolIterator:
             param_bounds (list): List of parameter bounds as (min, max) tuples.
             n_sobol (int): Number of Sobol samples to generate.
             objective_function: Function to evaluate the objective.
+            threshold (float or None): If best observed value > threshold, stop early.
+            maximize (bool): Whether to maximize or minimize the objective.
         """
         self.param_names = param_names
         self.param_bounds = param_bounds
         self.n_sobol = n_sobol
         self.objective_function = objective_function
+        self.threshold = threshold
+        self.maximize = maximize
 
         if len(param_names) != len(param_bounds):
             raise ValueError("param_names and param_bounds must match in length.")
@@ -502,7 +516,7 @@ class SobolIterator:
             dict: A dictionary of parameter names and their sampled values.
 
         Raises:
-            StopIteration: If the number of Sobol samples exceeds n_sobol.
+            StopIteration: If the number of Sobol samples exceeds n_sobol or threshold is met.
         """
         if self.current_step >= self.n_sobol:
             raise StopIteration
@@ -515,6 +529,16 @@ class SobolIterator:
             param_dict[name] = float(val)
 
         self.current_step += 1
+
+        # print(f"Trial {self.current_step}: {param_dict}")
+
+        if self.objective_function is not None:
+            objective = self.evaluate_objective(param_dict)
+            self.record_result(param_dict, objective)
+            if self.should_stop(objective):
+                print("Stopping early: threshold exceeded.")
+                raise StopIteration
+
         return param_dict
 
     def evaluate_objective(self, params: Dict[str, float]) -> Tuple[float, float]:
@@ -543,6 +567,28 @@ class SobolIterator:
             result (float or tuple): The result of the evaluation.
         """
         self.trials.append({"params": param_dict, "result": result})
+
+    def should_stop(self, result: Union[float, Tuple[float, float]]) -> bool:
+        """
+        Determine if the iterator should stop early based on the threshold.
+
+        Args:
+            result (float or tuple): The result of the evaluation.
+        Returns:
+            bool: True if the iterator should stop, False otherwise.
+        """
+        if self.threshold is None:
+            return False
+
+        if isinstance(result, tuple):
+            value = result[0]
+        else:
+            value = result
+
+        if self.maximize:
+            return value >= self.threshold
+        else:
+            return value <= self.threshold
 
     def get_all_data(
         self,
