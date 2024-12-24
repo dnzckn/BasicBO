@@ -317,6 +317,7 @@ class SobolIterator:
         result: Union[float, Tuple[float, float]],
     ) -> None:
         """
+        Potentially remove this method if you have data recording outside of func.
         Record the result of evaluating the parameters.
         Args:
             param_dict (dict): The parameter dictionary.
