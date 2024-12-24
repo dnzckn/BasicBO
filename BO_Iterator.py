@@ -530,14 +530,13 @@ class SobolIterator:
 
         self.current_step += 1
 
-        # print(f"Trial {self.current_step}: {param_dict}")
-
         if self.objective_function is not None:
             objective = self.evaluate_objective(param_dict)
             self.record_result(param_dict, objective)
             if self.should_stop(objective):
                 print("Stopping early: threshold exceeded.")
-                raise StopIteration
+                self.current_step = self.n_sobol
+                # raise StopIteration # doesnt seem to work
 
         return param_dict
 
