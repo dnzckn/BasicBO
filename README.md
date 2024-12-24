@@ -18,13 +18,6 @@ The figure above compares a traditional grid search (upper left) with Bayesian O
 
 Typically BO is initilized with random sampling of the search space, here we use SOBOL. After initilization the model uses observed data to update the surrogate model. Expected Improvement is then used to generate new trials. 
 
-
-### Configuring the Optimization Mode
-
-![Configuring Modes](figures/config_rates.png)
-
-The tutorial showcases Ax's ability to operate in synchronous or asynchronous mode with varying batch sizes. The figure demonstrates the trade-offs between rate and error on a short 20-shot-on-goal experiment.
-
 ---
 
 ## Key Concepts of Bayesian Optimization (BO)
