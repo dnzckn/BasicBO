@@ -5,6 +5,7 @@ from ax.modelbridge.registry import Models
 from ax.service.ax_client import AxClient
 from ax.service.utils.instantiation import ObjectiveProperties
 import torch
+from torch.quasirandom import SobolEngine
 
 
 class SyntheticGaussian:
@@ -207,3 +208,149 @@ class BayesianOptimizerIterator:
                     break
 
         yield {"final_model": self.ax_client.generation_strategy.model}
+
+
+class SobolIterator:
+    """
+    Yields Sobol sample parameter dictionaries in any dimension.
+    The user can externally evaluate them and record results.
+    Example usage:
+    >>> iterator = SobolIterator(
+    >>>     param_names=["x0", "x1"],
+    >>>     param_bounds=[(0, 1), (0, 1)],
+    >>>     n_sobol=1000,
+    >>>     objective_function=your_objective_function,
+    >>>     threshold=0.9,
+    >>>     maximize=True
+    >>> )
+    >>> for param_dict in iterator:
+    >>>     x0 = param_dict["x0"]
+    >>>     x1 = param_dict["x1"]
+    >>>     objective = iterator.evaluate_objective(param_dict)
+    >>>     iterator.record_result(param_dict, objective)
+    >>> data = iterator.get_all_data()
+    """
+
+    def __init__(
+        self,
+        param_names: List[str],
+        param_bounds: List[Tuple[float, float]],
+        n_sobol: int = 30,
+        objective_function=None,
+        threshold: Union[float, None] = None,
+        maximize: bool = True,
+    ):
+        """
+        Initialize the SobolIterator.
+        Args:
+            param_names (list): List of parameter names.
+            param_bounds (list): List of parameter bounds as (min, max) tuples.
+            n_sobol (int): Number of Sobol samples to generate.
+            objective_function: Function to evaluate the objective.
+            threshold (float or None): If best observed value > threshold, stop early.
+            maximize (bool): Whether to maximize or minimize the objective.
+        """
+        self.param_names = param_names
+        self.param_bounds = param_bounds
+        self.n_sobol = n_sobol
+        self.objective_function = objective_function
+        self.threshold = threshold
+        self.maximize = maximize
+        if len(param_names) != len(param_bounds):
+            raise ValueError("param_names and param_bounds must match in length.")
+        self.dimension = len(param_names)
+        # Prepare Sobol engine
+        self.sobol_engine = SobolEngine(dimension=self.dimension, scramble=True)
+        self.current_step = 0
+        # We'll store (param_dict, result) so you can retrieve them
+        self.trials = []
+
+    def __iter__(self) -> "SobolIterator":
+        """
+        Return the iterator object itself.
+        Returns:
+            SobolIterator: The iterator object.
+        """
+        return self
+
+    def __next__(self) -> Dict[str, float]:
+        """
+        Generate the next Sobol sample.
+        Returns:
+            dict: A dictionary of parameter names and their sampled values.
+        Raises:
+            StopIteration: If the number of Sobol samples exceeds n_sobol or threshold is met.
+        """
+        if self.current_step >= self.n_sobol:
+            raise StopIteration
+        sobol_pt = self.sobol_engine.draw(1).numpy()[0]  # shape=(dimension,)
+        param_dict = {}
+        for i, name in enumerate(self.param_names):
+            low, high = self.param_bounds[i]
+            val = low + sobol_pt[i] * (high - low)
+            param_dict[name] = float(val)
+        self.current_step += 1
+        if self.objective_function is not None:
+            objective = self.evaluate_objective(param_dict)
+            self.record_result(param_dict, objective)
+            if self.should_stop(objective):
+                print("Stopping early: threshold exceeded.")
+                self.current_step = self.n_sobol
+                # raise StopIteration # doesnt seem to work
+        return param_dict
+
+    def evaluate_objective(self, params: Dict[str, float]) -> Tuple[float, float]:
+        """
+        Evaluate the objective function.
+        Args:
+            params (dict): Parameter values at which to evaluate.
+        Returns:
+            tuple: (mean, sem) representing the evaluated objective and its SEM.
+        """
+        if self.objective_function is None:
+            raise ValueError("Objective function is not defined.")
+        return self.objective_function.read([params[name] for name in self.param_names])
+
+    def record_result(
+        self,
+        param_dict: Dict[str, float],
+        result: Union[float, Tuple[float, float]],
+    ) -> None:
+        """
+        Record the result of evaluating the parameters.
+        Args:
+            param_dict (dict): The parameter dictionary.
+            result (float or tuple): The result of the evaluation.
+        """
+        self.trials.append({"params": param_dict, "result": result})
+
+    def should_stop(self, result: Union[float, Tuple[float, float]]) -> bool:
+        """
+        Determine if the iterator should stop early based on the threshold.
+        Args:
+            result (float or tuple): The result of the evaluation.
+        Returns:
+            bool: True if the iterator should stop, False otherwise.
+        """
+        if self.threshold is None:
+            return False
+        if isinstance(result, tuple):
+            value = result[0]
+        else:
+            value = result
+        if self.maximize:
+            return value >= self.threshold
+        else:
+            return value <= self.threshold
+
+    def get_all_data(
+        self,
+    ) -> Dict[str, List[Union[Dict[str, float], Union[float, Tuple[float, float]]]]]:
+        """
+        Retrieve all recorded trials.
+        Returns:
+            dict: A dictionary containing lists of parameter sets and their results.
+        """
+        sobol_params = [trial["params"] for trial in self.trials]
+        observed_objective = [trial["result"] for trial in self.trials]
+        return {"sobol_params": sobol_params, "observed_objective": observed_objective}
