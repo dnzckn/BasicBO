@@ -60,8 +60,7 @@ class BaseOptimizerIterator(ABC, Iterator):
         objectives_tuple: Union[float, Tuple[float, float]],
     ) -> None:
         """
-        Store the newly observed params & objectives in self.observations,
-        but only if record_data=True.
+        Store the newly observed params & objectives in self.observations
         """
         if self.record_data:
             self.observations.append(
