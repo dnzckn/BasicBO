@@ -1,13 +1,13 @@
 import numpy as np
-from typing import List, Tuple, Dict, Union, Iterator
+from typing import List, Tuple, Dict, Union, Iterator, Callable, Any
+import torch
+from torch.quasirandom import SobolEngine
+from abc import ABC, abstractmethod
+
 from ax.modelbridge.generation_strategy import GenerationStrategy, GenerationStep
 from ax.modelbridge.registry import Models
 from ax.service.ax_client import AxClient
 from ax.service.utils.instantiation import ObjectiveProperties
-import torch
-from torch.quasirandom import SobolEngine
-from typing import List, Tuple, Dict, Union, Iterator, Callable, Any
-from abc import ABC, abstractmethod
 
 
 class BaseOptimizerIterator(ABC, Iterator):
@@ -31,33 +31,68 @@ class BaseOptimizerIterator(ABC, Iterator):
         self.objective_function = objective_function
         self.threshold = threshold
         self.maximize = maximize
-        self.trials = (
-            []
-        )  # Store trial results as a list of {"params": ..., "result": ...}
+
+        # Store all observations in a list of {"params": ..., "objectives": ...}
+        self.observations = []
+
         self.current_step = 0
         self.final_model = None  # To store the final model or state
 
-    def evaluate_objective(self, params: Dict[str, float]) -> Tuple[float, float]:
+        # Track best (for convenience)
+        self.best_objectives = float("-inf") if maximize else float("inf")
+        self.best_params = None
+
+    def evaluate_objective(self, params_dict: Dict[str, float]) -> Tuple[float, float]:
+        """
+        Evaluate the objective_function (if defined) on the provided params_dict.
+        """
         if self.objective_function is None:
             raise ValueError("Objective function is not defined.")
-        return self.objective_function([params[name] for name in self.param_names])
+        return self.objective_function([params_dict[name] for name in self.param_names])
 
-    def record_result(
-        self, param_dict: Dict[str, float], result: Union[float, Tuple[float, float]]
+    def record_observation(
+        self,
+        params_dict: Dict[str, float],
+        objectives_tuple: Union[float, Tuple[float, float]],
     ) -> None:
-        self.trials.append({"params": param_dict, "result": result})
+        """
+        Store the newly observed params & objectives in self.observations.
+        """
+        self.observations.append(
+            {"params": params_dict, "objectives": objectives_tuple}
+        )
 
-    def should_stop(self, result: Union[float, Tuple[float, float]]) -> bool:
+    def should_stop(self, objectives: Union[float, Tuple[float, float]]) -> bool:
+        """
+        Check whether we've exceeded (for maximize) or fallen below (for minimize)
+        the threshold.
+        """
         if self.threshold is None:
             return False
 
-        value = result[0] if isinstance(result, tuple) else result
-        return value >= self.threshold if self.maximize else value <= self.threshold
+        # If objectives is a tuple, interpret the first element as the primary objective
+        primary_obj = objectives[0] if isinstance(objectives, tuple) else objectives
+        if self.maximize:
+            return primary_obj >= self.threshold
+        else:
+            return primary_obj <= self.threshold
 
-    def get_all_data(self) -> Dict[str, List[Any]]:
-        params = [trial["params"] for trial in self.trials]
-        results = [trial["result"] for trial in self.trials]
-        return {"params": params, "results": results}
+    def get_all_observations(self) -> Dict[str, Any]:
+        """
+        Return a dict containing all observed (params, objectives) pairs
+        and also the best result found so far.
+        """
+        params_list = [obs["params"] for obs in self.observations]
+        objectives_list = [obs["objectives"] for obs in self.observations]
+
+        return {
+            "params": params_list,
+            "objectives": objectives_list,
+            "best_result": {
+                "params": self.best_params,
+                "objectives": self.best_objectives,
+            },
+        }
 
     def get_final_model(self) -> Any:
         """Retrieve the final model or state after optimization."""
@@ -93,8 +128,6 @@ class BayesianOptimizerIterator(BaseOptimizerIterator):
         self.epsilon = epsilon
         self.patience = patience
 
-        self.best_value = float("-inf") if maximize else float("inf")
-        self.best_params = None
         self.no_improvement_count = 0
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -122,33 +155,41 @@ class BayesianOptimizerIterator(BaseOptimizerIterator):
 
     def __next__(self) -> Dict[str, float]:
         if self.current_step >= self.num_trials:
-            # Stop iteration after all trials are completed
             self.final_model = self.ax_client.generation_strategy.model
             raise StopIteration
 
+        # Get next params & evaluate
         trial_params, trial_index = self.ax_client.get_next_trial()
-        objective_mean, objective_sem = self.evaluate_objective(trial_params)
-        self.ax_client.complete_trial(
-            trial_index, {"objective": (objective_mean, objective_sem)}
-        )
+        obj_mean, obj_sem = self.evaluate_objective(trial_params)
+        self.ax_client.complete_trial(trial_index, {"objective": (obj_mean, obj_sem)})
 
-        # Update the best value and params
-        if (self.maximize and objective_mean > self.best_value) or (
-            not self.maximize and objective_mean < self.best_value
+        # Record in the iterator's internal observations list
+        self.record_observation(trial_params, (obj_mean, obj_sem))
+
+        # Update best
+        if (self.maximize and obj_mean > self.best_objectives) or (
+            not self.maximize and obj_mean < self.best_objectives
         ):
-            self.best_value = objective_mean
+            self.best_objectives = obj_mean
             self.best_params = trial_params
             self.no_improvement_count = 0
         else:
-            self.no_improvement_count += 1
+            # Only increment no_improvement_count in GPEI phase
+            if self.current_step >= self.num_sobol:
+                self.no_improvement_count += 1
 
-        # Check stopping conditions
+        # Threshold check
+        if self.should_stop(self.best_objectives):
+            print("Stopping early: Threshold exceeded.")
+            self.final_model = self.ax_client.generation_strategy.model
+            raise StopIteration
+
+        # Patience check (only in GPEI)
         if (
-            self.should_stop(self.best_value)
-            or self.no_improvement_count > self.patience
+            self.current_step >= self.num_sobol
+            and self.no_improvement_count > self.patience
         ):
-            print("Stopping early: Optimization converged.")
-            # Save the final model and stop the iteration
+            print("Stopping early: No improvement under GPEI for too long.")
             self.final_model = self.ax_client.generation_strategy.model
             raise StopIteration
 
@@ -166,25 +207,17 @@ class SobolIterator(BaseOptimizerIterator):
     ):
         """
         Initialize the Sobol Iterator.
-
-        Args:
-            param_names (list): List of parameter names.
-            param_bounds (list): List of parameter bounds as (min, max) tuples.
-            n_sobol (int): Number of Sobol samples to generate.
-            kwargs: Additional arguments passed to BaseOptimizerIterator.
         """
         super().__init__(param_names, param_bounds, **kwargs)
         self.n_sobol = n_sobol
         self.sobol_engine = SobolEngine(dimension=len(param_names), scramble=True)
-        self.best_value = float("-inf") if self.maximize else float("inf")
-        self.best_params = None
 
     def __next__(self) -> Dict[str, float]:
         if self.current_step >= self.n_sobol:
             raise StopIteration
 
         sobol_pt = self.sobol_engine.draw(1).numpy()[0]
-        param_dict = {
+        params_dict = {
             name: low + sobol_pt[i] * (high - low)
             for i, (name, (low, high)) in enumerate(
                 zip(self.param_names, self.param_bounds)
@@ -193,61 +226,53 @@ class SobolIterator(BaseOptimizerIterator):
         self.current_step += 1
 
         if self.objective_function:
-            result = self.evaluate_objective(param_dict)
-            self.record_result(param_dict, result)
+            objectives_tuple = self.evaluate_objective(params_dict)
+            self.record_observation(params_dict, objectives_tuple)
 
-            # Update the best result if necessary
-            value = result[0]  # Assuming result is a (mean, sem) tuple
-            if (self.maximize and value > self.best_value) or (
-                not self.maximize and value < self.best_value
+            # Update best if needed
+            primary_obj = objectives_tuple[0]  # (mean, sem)
+            if (self.maximize and primary_obj > self.best_objectives) or (
+                not self.maximize and primary_obj < self.best_objectives
             ):
-                self.best_value = value
-                self.best_params = param_dict
+                self.best_objectives = primary_obj
+                self.best_params = params_dict
 
-            if self.should_stop(result):
+            if self.should_stop(objectives_tuple):
                 print("Stopping early: threshold exceeded.")
                 raise StopIteration
 
-        return param_dict
+        return params_dict
 
 
 class SyntheticGaussian:
-    """A synthetic response object simulating a noisy Gaussian-like surface as the objective.
-    Replace this with your actual objective function.
+    """
+    A synthetic response object simulating a noisy Gaussian-like surface
+    as the objective.
     """
 
     def __init__(self, centers: List[float], sigma: float = 0.1, n_samples: int = 1):
-        """
-        Initialize the Gaussian response surface.
-
-        Args:
-            centers (list): The "peak" of the Gaussian for each parameter.
-            sigma (float): Spread of the Gaussian.
-            n_samples (int): Number of samples to simulate measurement noise.
-        """
         self.centers = np.array(centers)
         self.sigma = sigma
         self.n_samples = n_samples
 
     def read(self, params: List[float]) -> Tuple[float, float]:
         """
-        Compute the objective value (mean and SEM if multiple samples).
-
-        Args:
-            params (list): Parameter values at which to evaluate.
-        Returns:
-            tuple: (mean, sem) representing the evaluated objective and its SEM.
+        Compute the objective value (mean, sem).
         """
-        params = np.array(params)
+        params_arr = np.array(params)
         # Gaussian-like function
-        objective = np.exp(-np.sum((params - self.centers) ** 2) / (2 * self.sigma**2))
+        base_obj = np.exp(
+            -np.sum((params_arr - self.centers) ** 2) / (2 * self.sigma**2)
+        )
+
         if self.n_samples > 1:
-            # Add noise for multiple samples and compute mean and SEM
-            noisy_objective = [
-                objective + np.random.normal(0, self.sigma)
+            # Multiple draws => add noise, average, compute sem
+            noisy_objs = [
+                base_obj + np.random.normal(0, self.sigma)
                 for _ in range(self.n_samples)
             ]
-            mean_objective = np.mean(noisy_objective)
-            sem_objective = np.std(noisy_objective) / np.sqrt(self.n_samples)
-            return mean_objective, sem_objective
-        return objective, 0.0
+            mean_obj = np.mean(noisy_objs)
+            sem_obj = np.std(noisy_objs) / np.sqrt(self.n_samples)
+            return mean_obj, sem_obj
+
+        return base_obj, 0.0
