@@ -215,7 +215,7 @@ class SobolIterator(BaseOptimizerIterator):
         param_names: List[str],
         param_bounds: List[Tuple[float, float]],
         n_sobol: int = 30,
-        record_data: bool = True,  # <-- pass along to base if you want
+        record_data: bool = True,
         **kwargs,
     ):
         """
@@ -247,7 +247,7 @@ class SobolIterator(BaseOptimizerIterator):
             objectives_tuple = self.evaluate_objective(params_dict)
             self.record_observation(params_dict, objectives_tuple)
 
-            # Update best if needed
+            # Update best
             primary_obj = objectives_tuple[0]  # (mean, sem)
             if (self.maximize and primary_obj > self.best_objectives) or (
                 not self.maximize and primary_obj < self.best_objectives
