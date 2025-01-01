@@ -22,6 +22,7 @@ class BaseOptimizerIterator(ABC, Iterator):
         objective_function: Callable[[List[float]], Tuple[float, float]] = None,
         threshold: Union[float, None] = None,
         maximize: bool = True,
+        record_data: bool = True,  # <-- Add a boolean flag here
     ):
         if len(param_names) != len(param_bounds):
             raise ValueError("param_names and param_bounds must match in length.")
@@ -31,6 +32,9 @@ class BaseOptimizerIterator(ABC, Iterator):
         self.objective_function = objective_function
         self.threshold = threshold
         self.maximize = maximize
+
+        # Whether to store observed data
+        self.record_data = record_data
 
         # Store all observations in a list of {"params": ..., "objectives": ...}
         self.observations = []
@@ -56,11 +60,13 @@ class BaseOptimizerIterator(ABC, Iterator):
         objectives_tuple: Union[float, Tuple[float, float]],
     ) -> None:
         """
-        Store the newly observed params & objectives in self.observations.
+        Store the newly observed params & objectives in self.observations,
+        but only if record_data=True.
         """
-        self.observations.append(
-            {"params": params_dict, "objectives": objectives_tuple}
-        )
+        if self.record_data:
+            self.observations.append(
+                {"params": params_dict, "objectives": objectives_tuple}
+            )
 
     def should_stop(self, objectives: Union[float, Tuple[float, float]]) -> bool:
         """
@@ -116,9 +122,15 @@ class BayesianOptimizerIterator(BaseOptimizerIterator):
         epsilon: float = 0.001,
         patience: int = 20,
         maximize: bool = True,
+        record_data: bool = True,
     ):
         super().__init__(
-            param_names, param_bounds, objective_function, threshold, maximize
+            param_names=param_names,
+            param_bounds=param_bounds,
+            objective_function=objective_function,
+            threshold=threshold,
+            maximize=maximize,
+            record_data=record_data,
         )
 
         self.num_sobol = num_sobol
@@ -163,7 +175,7 @@ class BayesianOptimizerIterator(BaseOptimizerIterator):
         obj_mean, obj_sem = self.evaluate_objective(trial_params)
         self.ax_client.complete_trial(trial_index, {"objective": (obj_mean, obj_sem)})
 
-        # Record in the iterator's internal observations list
+        # Record in the iterator's internal observations list (only if record_data=True)
         self.record_observation(trial_params, (obj_mean, obj_sem))
 
         # Update best
@@ -203,12 +215,18 @@ class SobolIterator(BaseOptimizerIterator):
         param_names: List[str],
         param_bounds: List[Tuple[float, float]],
         n_sobol: int = 30,
+        record_data: bool = True,  # <-- pass along to base if you want
         **kwargs,
     ):
         """
         Initialize the Sobol Iterator.
         """
-        super().__init__(param_names, param_bounds, **kwargs)
+        super().__init__(
+            param_names=param_names,
+            param_bounds=param_bounds,
+            record_data=record_data,
+            **kwargs,
+        )
         self.n_sobol = n_sobol
         self.sobol_engine = SobolEngine(dimension=len(param_names), scramble=True)
 
