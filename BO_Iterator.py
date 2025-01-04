@@ -116,7 +116,7 @@ class BayesianOptimizerIterator(BaseOptimizerIterator):
         param_bounds: List[Tuple[float, float]],
         num_sobol: int = 20,
         num_gpei: int = 30,
-        batch_size: int = 2,
+        max_parallelism: int = None,
         threshold: Union[float, None] = None,
         epsilon: float = 0.001,
         patience: int = 20,
@@ -135,7 +135,7 @@ class BayesianOptimizerIterator(BaseOptimizerIterator):
         self.num_sobol = num_sobol
         self.num_gpei = num_gpei
         self.num_trials = num_sobol + num_gpei
-        self.batch_size = batch_size
+        self.max_parallelism = max_parallelism
         self.epsilon = epsilon
         self.patience = patience
 
@@ -148,7 +148,7 @@ class BayesianOptimizerIterator(BaseOptimizerIterator):
                 GenerationStep(
                     model=Models.GPEI,
                     num_trials=num_gpei,
-                    max_parallelism=batch_size,
+                    max_parallelism=max_parallelism,
                     model_kwargs={"torch_device": self.device},
                 ),
             ]
